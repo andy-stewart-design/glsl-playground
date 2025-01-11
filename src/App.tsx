@@ -1,5 +1,6 @@
 import { useEffect, useRef } from "react";
 import GlslCanvas from "./utils/glsl-canvas";
+import fragment from "./shaders/250111-2.frag?raw";
 import s from "./styles/app.module.css";
 
 function App() {
@@ -9,7 +10,7 @@ function App() {
     const container = containerRef.current;
     if (!container) return;
 
-    const gl = new GlslCanvas(container);
+    const gl = new GlslCanvas(container, fragment);
     return () => {
       container.innerHTML = "";
       gl.destroy();

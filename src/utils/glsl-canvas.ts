@@ -8,12 +8,12 @@ export default class GlslCanvas {
   private mousePosition = [0, 0];
   private controller = new AbortController();
 
-  private vertices: Float32Array<ArrayBuffer>;
+  private vertices: Float32Array;
   private u_Time: WebGLUniformLocation | null;
   private u_Resolution: WebGLUniformLocation | null;
   private u_Mouse: WebGLUniformLocation | null;
 
-  constructor(container: HTMLElement) {
+  constructor(container: HTMLElement, frag?: string) {
     this.container = container;
     this.canvas = document.createElement("canvas");
     this.canvas.style.display = "block";
@@ -24,9 +24,10 @@ export default class GlslCanvas {
       this.gl.VERTEX_SHADER,
       vertexShaderSource
     );
+
     const fragmentShader = this.compileShader(
       this.gl.FRAGMENT_SHADER,
-      fragmentShaderSource
+      frag ?? fragmentShaderSource
     );
 
     const program = this.createProgram(vertexShader, fragmentShader);
@@ -72,6 +73,9 @@ export default class GlslCanvas {
 
   createProgram(vertexShader: WebGLShader, fragmentShader: WebGLShader) {
     const program = this.gl.createProgram();
+    if (!program) {
+      throw new Error(`Error creating WebGL Program`);
+    }
     this.gl.attachShader(program, vertexShader);
     this.gl.attachShader(program, fragmentShader);
     this.gl.linkProgram(program);
