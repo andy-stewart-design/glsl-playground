@@ -1,0 +1,31 @@
+.section {
+  width: 100vw;
+  height: 100vh;
+  height: 100svh;
+}
+
+.controls {
+  position: fixed;
+  top: 1.5rem;
+  right: 1.5rem;
+
+  display: grid;
+
+  min-width: 240px;
+  padding: 2rem;
+  background: rgb(0 0 0 / 0.8);
+  outline: 1px solid rgb(255 255 255 / 0.2);
+  border-radius: 1.5rem;
+  box-shadow: 0px 8px 32px 0px rgba(0 0 0 / 0.5);
+
+  label {
+    display: grid;
+    gap: 0.75rem;
+    font-size: 0.875rem;
+    user-select: none;
+  }
+
+  input[type="range"] {
+    display: block;
+  }
+}
