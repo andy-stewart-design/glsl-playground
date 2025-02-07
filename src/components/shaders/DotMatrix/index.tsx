@@ -65,9 +65,7 @@ function DotMatrix() {
             name="color"
             value={color}
             onChange={(e) => {
-              const value = isColor(e.target.value)
-                ? e.target.value
-                : undefined;
+              const value = isColor(e.target.value) && e.target.value;
               if (value) setColor(value);
             }}
           >
