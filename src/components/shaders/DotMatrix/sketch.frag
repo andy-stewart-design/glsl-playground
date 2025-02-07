@@ -8,6 +8,7 @@ uniform vec2 u_resolution;
 uniform vec2 u_mouse;
 uniform float u_time;
 uniform float u_grid;
+uniform float u_speed;
 
 void main() {
     // Normalize the coordinate space
@@ -28,7 +29,7 @@ void main() {
     float rad = 1.;
     rad = distance(uvScreen, vec2(0.));
     // rad = uvScreen.y;
-    rad = sin(rad + u_time) + 1. / 2.;
+    rad = sin(rad + u_time * u_speed) + 1. / 2.;
     d = smoothstep(rad - blur, rad + blur, d);
     d = 1. - d;
 
