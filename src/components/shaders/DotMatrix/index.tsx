@@ -2,11 +2,19 @@ import { useEffect, useRef, useState } from "react";
 import GlslRenderer from "@/utils/glsl-canvas";
 import RangeInput from "@/components/controls/RangeInput";
 import frag from "./sketch.frag?raw";
+import { colorArray, isColor, colorObject, ColorOption } from "./color";
 import s from "./style.module.css";
 
-const U_DEFAULTS = {
+interface Defaults {
+  grid: number;
+  speed: number;
+  color: ColorOption;
+}
+
+const U_DEFAULTS: Defaults = {
   grid: 5,
   speed: 1,
+  color: "grayscale",
 };
 
 function DotMatrix() {
@@ -15,6 +23,7 @@ function DotMatrix() {
 
   const [grid, setGrid] = useState(U_DEFAULTS.grid);
   const [speed, setSpeed] = useState(U_DEFAULTS.speed);
+  const [color, setColor] = useState<ColorOption>(U_DEFAULTS.color);
 
   useEffect(() => {
     const container = containerRef.current;
@@ -23,6 +32,7 @@ function DotMatrix() {
     const gl = new GlslRenderer(container, frag, {
       u_grid: { type: "float", value: U_DEFAULTS.grid },
       u_speed: { type: "float", value: U_DEFAULTS.speed },
+      u_color: { type: "vec3", value: [0, 1, 1] },
     });
 
     glRef.current = gl;
@@ -39,12 +49,35 @@ function DotMatrix() {
       type: "float",
       value: speed,
     });
-  }, [grid, speed]);
+    glRef.current?.setUniform("u_color", {
+      type: "vec3",
+      value: colorObject[color],
+    });
+  }, [grid, speed, color]);
 
   return (
     <>
       <section ref={containerRef} className={s.section} />
       <div className={s.controls}>
+        <label>
+          Accent color
+          <select
+            name="color"
+            value={color}
+            onChange={(e) => {
+              const value = isColor(e.target.value)
+                ? e.target.value
+                : undefined;
+              if (value) setColor(value);
+            }}
+          >
+            {colorArray.map((color) => (
+              <option key={color.value} value={color.value}>
+                {color.name}
+              </option>
+            ))}
+          </select>
+        </label>
         <label>
           Grid size
           <RangeInput value={grid} onChange={setGrid} min={2} max={20} />

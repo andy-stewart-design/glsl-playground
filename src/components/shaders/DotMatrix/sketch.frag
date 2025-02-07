@@ -9,6 +9,7 @@ uniform vec2 u_mouse;
 uniform float u_time;
 uniform float u_grid;
 uniform float u_speed;
+uniform vec3 u_color;
 
 void main() {
     // Normalize the coordinate space
@@ -33,7 +34,9 @@ void main() {
     d = smoothstep(rad - blur, rad + blur, d);
     d = 1. - d;
 
-    gl_FragColor = vec4(d, 0., 0., 1.);
+    vec3 col = u_color;
+
+    gl_FragColor = vec4(d * u_color, 1.0);
 }
 
 // https://www.youtube.com/watch?v=f4s1h2YETNY&t=900s
