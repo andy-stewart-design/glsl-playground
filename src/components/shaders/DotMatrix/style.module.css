@@ -24,6 +24,12 @@
     gap: 0.5rem;
     font-size: 0.875rem;
     user-select: none;
+
+    &:has(input[type="checkbox"]) {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
   }
 
   input[type="range"] {

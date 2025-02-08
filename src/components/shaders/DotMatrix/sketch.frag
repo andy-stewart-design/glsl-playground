@@ -10,6 +10,7 @@ uniform float u_time;
 uniform float u_grid;
 uniform float u_speed;
 uniform vec3 u_color;
+uniform int u_inverted;
 
 void main() {
     // Normalize the coordinate space
@@ -32,7 +33,8 @@ void main() {
     // rad = uvScreen.y;
     rad = sin(rad + u_time * u_speed) + 1. / 2.;
     d = smoothstep(rad - blur, rad + blur, d);
-    d = 1. - d;
+
+    d = u_inverted == 1 ? 1. - d : d;
 
     vec3 col = u_color;
 

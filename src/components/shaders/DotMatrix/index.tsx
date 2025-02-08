@@ -9,12 +9,14 @@ interface Defaults {
   grid: number;
   speed: number;
   color: ColorOption;
+  inverted: boolean;
 }
 
 const U_DEFAULTS: Defaults = {
   grid: 5,
   speed: 1,
   color: "grayscale",
+  inverted: true,
 };
 
 function DotMatrix() {
@@ -24,6 +26,7 @@ function DotMatrix() {
   const [grid, setGrid] = useState(U_DEFAULTS.grid);
   const [speed, setSpeed] = useState(U_DEFAULTS.speed);
   const [color, setColor] = useState<ColorOption>(U_DEFAULTS.color);
+  const [inverted, setInverted] = useState(U_DEFAULTS.inverted);
 
   useEffect(() => {
     const container = containerRef.current;
@@ -33,6 +36,7 @@ function DotMatrix() {
       u_grid: { type: "float", value: U_DEFAULTS.grid },
       u_speed: { type: "float", value: U_DEFAULTS.speed },
       u_color: { type: "vec3", value: [0, 1, 1] },
+      u_inverted: { type: "bool", value: U_DEFAULTS.inverted },
     });
 
     glRef.current = gl;
@@ -53,7 +57,11 @@ function DotMatrix() {
       type: "vec3",
       value: colorObject[color],
     });
-  }, [grid, speed, color]);
+    glRef.current?.setUniform("u_inverted", {
+      type: "bool",
+      value: inverted,
+    });
+  }, [grid, speed, color, inverted]);
 
   return (
     <>
@@ -88,6 +96,14 @@ function DotMatrix() {
             min={0.25}
             max={4}
             step={0.1}
+          />
+        </label>
+        <label>
+          Invert colors
+          <input
+            type="checkbox"
+            checked={inverted}
+            onChange={(e) => setInverted(e.target.checked)}
           />
         </label>
       </div>
