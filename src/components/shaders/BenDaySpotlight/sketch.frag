@@ -7,12 +7,12 @@ precision mediump float;
 uniform vec2 u_resolution;
 uniform vec2 u_mouse;
 uniform float u_time;
+uniform float u_grid;
+uniform float u_spread;
+uniform float u_blur;
+uniform int u_modulateSize;
 
-float gridSize = 8.;
-float spreadFactor = 0.625;
-float spreadAmount = 0.5 + 2.5 * (1. - spreadFactor);
-float blurAmount = 0.;
-int modulateSize = 1;
+float spreadAmount = 0.5 + 2.5 * (1. - u_spread);
 
 void main() {
     // Normalize the coordinate space
@@ -27,21 +27,21 @@ void main() {
     // Save a copy of the original coordinate space
     vec2 uvScreen = uv;
     // Divide the space into a repeating grid
-    uv = fract(uv * gridSize);
+    uv = fract(uv * u_grid);
     // Remap the coordiante space of each cell
     uv = uv * 2.0 - 1.0;
 
     // Calculate the grid cell center in original coordinates
-    vec2 cellIndex = floor(uvScreen * gridSize);
-    vec2 cellCenter = (cellIndex + 0.5) / gridSize;
+    vec2 cellIndex = floor(uvScreen * u_grid);
+    vec2 cellCenter = (cellIndex + 0.5) / u_grid;
     // Calculate distance of this cell from center of screen
     float distFromMouse = distance(cellCenter, mouse);
     // Normalize this distance for darkening
     float darkFactor = min(distFromMouse * spreadAmount, 1.0);
 
     // Grid parameters
-    float blur = max(0.025, distFromMouse * blurAmount);
-    float rad = modulateSize == 0 ? 0.9 : 1. - distFromMouse;
+    float blur = max(0.025, distFromMouse * u_blur);
+    float rad = u_modulateSize == 0 ? 0.9 : 1. - distFromMouse;
     // Create a grid of circles
     float d = length(uv);
     d = smoothstep(rad - blur, rad + blur, d);
