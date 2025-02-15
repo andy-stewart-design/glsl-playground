@@ -1,9 +1,12 @@
-import DotMatrix from "./components/shaders/DotMatrix";
+import GlslCanvas from "./components/GlslCanvas";
+import frag from "./shaders/250214-1.frag?raw";
+// import DotMatrix from "./components/shaders/DotMatrix";
 
 function App() {
   return (
     <main>
-      <DotMatrix />
+      {/* <DotMatrix /> */}
+      <GlslCanvas frag={frag} />
     </main>
   );
 }
