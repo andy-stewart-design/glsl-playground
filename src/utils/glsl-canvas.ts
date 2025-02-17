@@ -31,26 +31,17 @@ export interface UniformConfig {
   [key: string]: UniformValue;
 }
 
-export default class GlslCanvas {
-  private container: HTMLElement;
-  private canvas: HTMLCanvasElement;
-  private gl: WebGLRenderingContext;
-  private mousePosition = [0, 0];
-  private controller = new AbortController();
-  private program: WebGLProgram;
-  private uniformLocations: Map<string, WebGLUniformLocation> = new Map();
-  private textures: Map<number, WebGLTexture> = new Map();
+const DEFAULT_VERTICES = new Float32Array([
+  -1, -1, 1, -1, -1, 1, -1, 1, 1, -1, 1, 1,
+]);
 
-  private vertices: Float32Array;
-  private u_Time: WebGLUniformLocation | null;
-  private u_Resolution: WebGLUniformLocation | null;
-  private u_Mouse: WebGLUniformLocation | null;
+class WebGLCanvas {
+  public container: HTMLElement;
+  public canvas: HTMLCanvasElement;
+  public gl: WebGLRenderingContext;
+  public program: WebGLProgram;
 
-  constructor(
-    container: HTMLElement,
-    frag?: string,
-    initialUniforms: UniformConfig = {}
-  ) {
+  constructor(container: HTMLElement, frag?: string) {
     this.container = container;
     this.canvas = document.createElement("canvas");
     this.canvas.style.display = "block";
@@ -69,32 +60,11 @@ export default class GlslCanvas {
 
     this.program = this.createProgram(vertexShader, fragmentShader);
     this.gl.useProgram(this.program);
-
-    this.vertices = new Float32Array([
-      -1, -1, 1, -1, -1, 1, -1, 1, 1, -1, 1, 1,
-    ]);
-
-    this.createBuffer(this.vertices);
+    this.createBuffer(DEFAULT_VERTICES);
 
     const a_Position = this.gl.getAttribLocation(this.program, "a_position");
     this.gl.enableVertexAttribArray(a_Position);
     this.gl.vertexAttribPointer(a_Position, 2, this.gl.FLOAT, false, 0, 0);
-
-    // Built-in uniform locations
-    this.u_Time = this.gl.getUniformLocation(this.program, "u_time");
-    this.u_Resolution = this.gl.getUniformLocation(
-      this.program,
-      "u_resolution"
-    );
-    this.u_Mouse = this.gl.getUniformLocation(this.program, "u_mouse");
-
-    // Initialize custom uniforms
-    this.initializeUniforms(initialUniforms);
-
-    this.handleResize();
-    this.addEventListeners();
-    this.container.appendChild(this.canvas);
-    requestAnimationFrame((t) => this.render(t));
   }
 
   private compileShader(type: number, source: string) {
@@ -140,19 +110,53 @@ export default class GlslCanvas {
     return buffer;
   }
 
+  public destroy() {
+    this.container.innerHTML = "";
+  }
+}
+
+export default class GlslRenderer extends WebGLCanvas {
+  private mousePosition = [0, 0];
+  private uniforms: Map<string, WebGLUniformLocation | null> = new Map();
+  private textures: Map<number, WebGLTexture> = new Map();
+  private controller = new AbortController();
+
+  constructor(
+    container: HTMLElement,
+    frag?: string,
+    initialUniforms: UniformConfig = {}
+  ) {
+    super(container, frag);
+
+    // Built-in uniform locations
+    const uTime = this.gl.getUniformLocation(this.program, "u_time");
+    this.uniforms.set("u_time", uTime);
+    const uRes = this.gl.getUniformLocation(this.program, "u_resolution");
+    this.uniforms.set("u_resolution", uRes);
+    const uMouse = this.gl.getUniformLocation(this.program, "u_mouse");
+    this.uniforms.set("u_mouse", uMouse);
+
+    // Initialize custom uniforms
+    this.initializeUniforms(initialUniforms);
+
+    this.handleResize();
+    this.addEventListeners();
+    this.container.appendChild(this.canvas);
+    requestAnimationFrame((t) => this.render(t));
+  }
+
   private initializeUniforms(uniforms: UniformConfig) {
     for (const [name, config] of Object.entries(uniforms)) {
       const location = this.gl.getUniformLocation(this.program, name);
       if (!location) continue;
 
-      this.uniformLocations.set(name, location);
+      this.uniforms.set(name, location);
       this.setUniform(name, config);
     }
   }
 
   public setUniform(name: string, config: UniformValue) {
-    let textureUnit = 0;
-    const location = this.uniformLocations.get(name);
+    const location = this.uniforms.get(name);
 
     if (!location) {
       console.warn(`Uniform ${name} not found`);
@@ -181,7 +185,7 @@ export default class GlslCanvas {
         this.gl.uniform1i(location, value ? 1 : 0);
         break;
       case "sampler2D":
-        this.loadTexture(name, value, textureUnit++);
+        this.loadTexture(name, value, this.textures.size);
         break;
       default:
         console.warn(`Unsupported uniform type: ${type}`);
@@ -215,7 +219,7 @@ export default class GlslCanvas {
     this.textures.set(textureUnit, texture);
 
     // Set the sampler uniform to use the correct texture unit
-    const location = this.uniformLocations.get(name);
+    const location = this.uniforms.get(name);
     if (location) {
       this.gl.uniform1i(location, textureUnit);
     }
@@ -248,7 +252,7 @@ export default class GlslCanvas {
         );
         if (sizeLocation) {
           this.gl.uniform2f(sizeLocation, image.width, image.height);
-          this.uniformLocations.set(sizeUniformName, sizeLocation);
+          this.uniforms.set(sizeUniformName, sizeLocation);
         }
 
         // Check if power of 2
@@ -289,12 +293,10 @@ export default class GlslCanvas {
     this.gl.clear(this.gl.COLOR_BUFFER_BIT);
 
     // Pass uniforms
-    this.gl.uniform1f(this.u_Time, time * 0.001); // Time in seconds
-    this.gl.uniform2f(
-      this.u_Mouse,
-      this.mousePosition[0],
-      this.mousePosition[1]
-    );
+    const uTime = this.uniforms.get("u_time") ?? null;
+    this.gl.uniform1f(uTime, time * 0.001); // Time in seconds
+    const uMouse = this.uniforms.get("u_mouse") ?? null;
+    this.gl.uniform2f(uMouse, this.mousePosition[0], this.mousePosition[1]);
 
     this.textures.forEach((texture, unit) => {
       this.gl.activeTexture(this.gl.TEXTURE0 + unit);
@@ -302,7 +304,7 @@ export default class GlslCanvas {
     });
 
     // Draw
-    this.gl.drawArrays(this.gl.TRIANGLES, 0, this.vertices.length / 2);
+    this.gl.drawArrays(this.gl.TRIANGLES, 0, DEFAULT_VERTICES.length / 2);
 
     requestAnimationFrame((t) => this.render(t));
   }
@@ -312,7 +314,8 @@ export default class GlslCanvas {
     this.canvas.width = rect.width;
     this.canvas.height = rect.height;
     this.gl.viewport(0, 0, this.canvas.width, this.canvas.height);
-    this.gl.uniform2f(this.u_Resolution, this.canvas.width, this.canvas.height);
+    const uRes = this.uniforms.get("u_resolution") ?? null;
+    this.gl.uniform2f(uRes, this.canvas.width, this.canvas.height);
   }
 
   private addEventListeners() {
@@ -332,14 +335,10 @@ export default class GlslCanvas {
   }
 
   public destroy() {
-    this.container.innerHTML = "";
-    this.controller.abort();
-
-    // Clean up textures
-    this.textures.forEach((texture) => {
-      this.gl.deleteTexture(texture);
-    });
+    super.destroy();
+    this.textures.forEach((txtr) => this.gl.deleteTexture(txtr));
     this.textures.clear();
+    this.controller.abort();
   }
 }
 
