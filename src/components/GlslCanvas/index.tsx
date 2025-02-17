@@ -1,12 +1,13 @@
 import { useEffect, useRef } from "react";
-import GlslRenderer from "@/utils/glsl-canvas";
+import GlslRenderer, { UniformConfig } from "@/utils/glsl-canvas";
 import s from "./style.module.css";
 
 interface Props {
   frag: string;
+  uniforms?: UniformConfig;
 }
 
-function GlslCanvas({ frag }: Props) {
+function GlslCanvas({ frag, uniforms }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const glRef = useRef<GlslRenderer | null>(null);
 
@@ -14,12 +15,12 @@ function GlslCanvas({ frag }: Props) {
     const container = containerRef.current;
     if (!container) return;
 
-    const gl = new GlslRenderer(container, frag);
+    const gl = new GlslRenderer(container, frag, uniforms);
 
     glRef.current = gl;
 
     return () => gl.destroy();
-  }, [frag]);
+  }, [frag, uniforms]);
 
   return <section ref={containerRef} className={s.section} />;
 }
