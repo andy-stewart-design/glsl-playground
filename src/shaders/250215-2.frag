@@ -8,8 +8,10 @@ uniform vec2 u_resolution;
 uniform vec2 u_mouse;
 uniform float u_time;
 
-float gridSize = 16.;
-float edgeOffset = 0.9;
+float gridSize = 12.;
+float edgeOffset = 0.75;
+float ringDensity = 12.;
+float speed = 4.;
 
 void main() {
     // Normalize the coordinate space
@@ -37,9 +39,9 @@ void main() {
     // Calculate distance of this cell from center of screen
     float distFromCenter = distance(cellCenter, vec2(0.));
     // Create a ripple effect from the center
-    float nSin = (sin(u_time * 4. + distFromCenter * -16.) + 1.) / 2.;
+    float nSin = (sin(u_time * speed + distFromCenter * -ringDensity) + 1.) / 2.;
     // Darken the color of the rings as they move awau from the center
-    float darkFactor = distFromCenter * 0.375 + nSin;
+    float darkFactor = distFromCenter * 0.25 + nSin;
     darkFactor = 1. - darkFactor;
 
     vec3 color = vec3(1.0, 0.0, 1.0) * darkFactor * gridCell;
