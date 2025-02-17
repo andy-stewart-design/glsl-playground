@@ -36,10 +36,10 @@ const DEFAULT_VERTICES = new Float32Array([
 ]);
 
 class WebGLCanvas {
-  public container: HTMLElement;
-  public canvas: HTMLCanvasElement;
-  public gl: WebGLRenderingContext;
-  public program: WebGLProgram;
+  readonly container: HTMLElement;
+  readonly canvas: HTMLCanvasElement;
+  readonly gl: WebGLRenderingContext;
+  readonly program: WebGLProgram;
 
   constructor(container: HTMLElement, frag?: string) {
     this.container = container;
@@ -115,18 +115,19 @@ class WebGLCanvas {
   }
 }
 
-export default class GlslRenderer extends WebGLCanvas {
-  private mousePosition = [0, 0];
-  private uniforms: Map<string, WebGLUniformLocation | null> = new Map();
-  private textures: Map<number, WebGLTexture> = new Map();
-  private controller = new AbortController();
+class GlslAssetManager {
+  readonly gl: WebGLRenderingContext;
+  readonly program: WebGLProgram;
+  readonly uniforms: Map<string, WebGLUniformLocation | null> = new Map();
+  readonly textures: Map<number, WebGLTexture> = new Map();
 
   constructor(
-    container: HTMLElement,
-    frag?: string,
+    gl: WebGLRenderingContext,
+    program: WebGLProgram,
     initialUniforms: UniformConfig = {}
   ) {
-    super(container, frag);
+    this.gl = gl;
+    this.program = program;
 
     // Built-in uniform locations
     const uTime = this.gl.getUniformLocation(this.program, "u_time");
@@ -138,11 +139,6 @@ export default class GlslRenderer extends WebGLCanvas {
 
     // Initialize custom uniforms
     this.initializeUniforms(initialUniforms);
-
-    this.handleResize();
-    this.addEventListeners();
-    this.container.appendChild(this.canvas);
-    requestAnimationFrame((t) => this.render(t));
   }
 
   private initializeUniforms(uniforms: UniformConfig) {
@@ -155,7 +151,7 @@ export default class GlslRenderer extends WebGLCanvas {
     }
   }
 
-  public setUniform(name: string, config: UniformValue) {
+  private setUniform(name: string, config: UniformValue) {
     const location = this.uniforms.get(name);
 
     if (!location) {
@@ -288,17 +284,42 @@ export default class GlslRenderer extends WebGLCanvas {
     image.src = url;
   }
 
+  public destroy() {
+    this.textures.forEach((txtr) => this.gl.deleteTexture(txtr));
+    this.textures.clear();
+  }
+}
+
+export default class GlslRenderer extends WebGLCanvas {
+  private mousePosition = [0, 0];
+  private assets: GlslAssetManager;
+  private controller = new AbortController();
+
+  constructor(
+    container: HTMLElement,
+    frag?: string,
+    initialUniforms: UniformConfig = {}
+  ) {
+    super(container, frag);
+    this.assets = new GlslAssetManager(this.gl, this.program, initialUniforms);
+
+    this.handleResize();
+    this.addEventListeners();
+    this.container.appendChild(this.canvas);
+    requestAnimationFrame((t) => this.render(t));
+  }
+
   private render(time: number) {
     this.gl.clearColor(0, 0, 0, 1);
     this.gl.clear(this.gl.COLOR_BUFFER_BIT);
 
     // Pass uniforms
-    const uTime = this.uniforms.get("u_time") ?? null;
+    const uTime = this.assets.uniforms.get("u_time") ?? null;
     this.gl.uniform1f(uTime, time * 0.001); // Time in seconds
-    const uMouse = this.uniforms.get("u_mouse") ?? null;
+    const uMouse = this.assets.uniforms.get("u_mouse") ?? null;
     this.gl.uniform2f(uMouse, this.mousePosition[0], this.mousePosition[1]);
 
-    this.textures.forEach((texture, unit) => {
+    this.assets.textures.forEach((texture, unit) => {
       this.gl.activeTexture(this.gl.TEXTURE0 + unit);
       this.gl.bindTexture(this.gl.TEXTURE_2D, texture);
     });
@@ -314,7 +335,7 @@ export default class GlslRenderer extends WebGLCanvas {
     this.canvas.width = rect.width;
     this.canvas.height = rect.height;
     this.gl.viewport(0, 0, this.canvas.width, this.canvas.height);
-    const uRes = this.uniforms.get("u_resolution") ?? null;
+    const uRes = this.assets.uniforms.get("u_resolution") ?? null;
     this.gl.uniform2f(uRes, this.canvas.width, this.canvas.height);
   }
 
@@ -336,8 +357,7 @@ export default class GlslRenderer extends WebGLCanvas {
 
   public destroy() {
     super.destroy();
-    this.textures.forEach((txtr) => this.gl.deleteTexture(txtr));
-    this.textures.clear();
+    this.assets.destroy();
     this.controller.abort();
   }
 }

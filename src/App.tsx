@@ -1,5 +1,5 @@
 import GlslCanvas from "./components/GlslCanvas";
-import frag from "./shaders/250217-1.frag?raw";
+import frag from "./shaders/250217-2.frag?raw";
 // import BenDaySpotlight from "./components/shaders/BenDaySpotlight";
 // import DotMatrix from "./components/shaders/DotMatrix";
 
