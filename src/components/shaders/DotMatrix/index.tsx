@@ -45,19 +45,19 @@ function DotMatrix() {
   }, []);
 
   useEffect(() => {
-    glRef.current?.assets.uniforms.set("u_grid", {
+    glRef.current?.updateUniform("u_grid", {
       type: "float",
       value: grid,
     });
-    glRef.current?.assets.uniforms.set("u_speed", {
+    glRef.current?.updateUniform("u_speed", {
       type: "float",
       value: speed,
     });
-    glRef.current?.assets.uniforms.set("u_color", {
+    glRef.current?.updateUniform("u_color", {
       type: "vec3",
       value: colorObject[color],
     });
-    glRef.current?.assets.uniforms.set("u_inverted", {
+    glRef.current?.updateUniform("u_inverted", {
       type: "bool",
       value: inverted,
     });

@@ -37,43 +37,6 @@ class GlslAssetManager {
     }
   }
 
-  private setUniform(name: string, config: UniformValue) {
-    const location = this.uniforms.get(name);
-
-    if (!location) {
-      console.warn(`Uniform ${name} not found`);
-      return;
-    }
-
-    const { type, value } = config;
-
-    switch (type) {
-      case "float":
-        this.gl.uniform1f(location, value);
-        break;
-      case "vec2":
-        this.gl.uniform2fv(location, value);
-        break;
-      case "vec3":
-        this.gl.uniform3fv(location, value);
-        break;
-      case "vec4":
-        this.gl.uniform4fv(location, value);
-        break;
-      case "int":
-        this.gl.uniform1i(location, value);
-        break;
-      case "bool":
-        this.gl.uniform1i(location, value ? 1 : 0);
-        break;
-      case "sampler2D":
-        this.loadTexture(name, value, this.textures.size);
-        break;
-      default:
-        console.warn(`Unsupported uniform type: ${type}`);
-    }
-  }
-
   private loadTexture(name: string, url: string, textureUnit: number) {
     // Create a new texture
     const texture = this.gl.createTexture();
@@ -123,6 +86,43 @@ class GlslAssetManager {
     };
 
     image.src = url;
+  }
+
+  public setUniform(name: string, config: UniformValue) {
+    const location = this.uniforms.get(name);
+
+    if (!location) {
+      console.warn(`Uniform ${name} not found`);
+      return;
+    }
+
+    const { type, value } = config;
+
+    switch (type) {
+      case "float":
+        this.gl.uniform1f(location, value);
+        break;
+      case "vec2":
+        this.gl.uniform2fv(location, value);
+        break;
+      case "vec3":
+        this.gl.uniform3fv(location, value);
+        break;
+      case "vec4":
+        this.gl.uniform4fv(location, value);
+        break;
+      case "int":
+        this.gl.uniform1i(location, value);
+        break;
+      case "bool":
+        this.gl.uniform1i(location, value ? 1 : 0);
+        break;
+      case "sampler2D":
+        this.loadTexture(name, value, this.textures.size);
+        break;
+      default:
+        console.warn(`Unsupported uniform type: ${type}`);
+    }
   }
 
   public destroy() {

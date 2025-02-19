@@ -44,19 +44,19 @@ function BenDaySpotlight() {
   }, []);
 
   useEffect(() => {
-    glRef.current?.assets.uniforms.set("u_grid", {
+    glRef.current?.updateUniform("u_grid", {
       type: "float",
       value: grid,
     });
-    glRef.current?.assets.uniforms.set("u_spread", {
+    glRef.current?.updateUniform("u_spread", {
       type: "float",
       value: spread,
     });
-    glRef.current?.assets.uniforms.set("u_blur", {
+    glRef.current?.updateUniform("u_blur", {
       type: "float",
       value: blur,
     });
-    glRef.current?.assets.uniforms.set("u_modulateSize", {
+    glRef.current?.updateUniform("u_modulateSize", {
       type: "bool",
       value: modulateSize,
     });

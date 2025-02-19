@@ -1,4 +1,4 @@
-import { UniformConfig } from "./types";
+import { UniformConfig, UniformValue } from "./types";
 import GlslAssetManager from "./glsl-asset-manager";
 import GlslCanvas, { DEFAULT_VERTICES } from "./glsl-canvas";
 
@@ -63,6 +63,10 @@ export default class GlslRenderer extends GlslCanvas {
     );
 
     window.addEventListener("resize", () => this.handleResize(), { signal });
+  }
+
+  public updateUniform(name: string, config: UniformValue) {
+    this.assets.setUniform(name, config);
   }
 
   public destroy() {
