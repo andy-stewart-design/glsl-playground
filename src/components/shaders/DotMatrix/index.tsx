@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import GlslRenderer from "@/utils/glsl-canvas";
+import GlslRenderer from "@/utils/glsl";
 import RangeInput from "@/components/controls/RangeInput";
 import frag from "./sketch.frag?raw";
 import { colorArray, isColor, colorObject, ColorOption } from "./color";
@@ -45,19 +45,19 @@ function DotMatrix() {
   }, []);
 
   useEffect(() => {
-    glRef.current?.setUniform("u_grid", {
+    glRef.current?.assets.uniforms.set("u_grid", {
       type: "float",
       value: grid,
     });
-    glRef.current?.setUniform("u_speed", {
+    glRef.current?.assets.uniforms.set("u_speed", {
       type: "float",
       value: speed,
     });
-    glRef.current?.setUniform("u_color", {
+    glRef.current?.assets.uniforms.set("u_color", {
       type: "vec3",
       value: colorObject[color],
     });
-    glRef.current?.setUniform("u_inverted", {
+    glRef.current?.assets.uniforms.set("u_inverted", {
       type: "bool",
       value: inverted,
     });

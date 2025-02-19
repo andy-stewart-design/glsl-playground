@@ -1,5 +1,6 @@
 import { useEffect, useRef } from "react";
-import GlslRenderer, { UniformConfig } from "@/utils/glsl-canvas";
+import GlslRenderer from "@/utils/glsl";
+import type { UniformConfig } from "@/utils/glsl/types";
 import s from "./style.module.css";
 
 interface Props {

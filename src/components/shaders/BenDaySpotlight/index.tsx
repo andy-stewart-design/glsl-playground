@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import GlslRenderer from "@/utils/glsl-canvas";
+import GlslRenderer from "@/utils/glsl";
 import RangeInput from "@/components/controls/RangeInput";
 import frag from "./sketch.frag?raw";
 import s from "./style.module.css";
@@ -44,19 +44,19 @@ function BenDaySpotlight() {
   }, []);
 
   useEffect(() => {
-    glRef.current?.setUniform("u_grid", {
+    glRef.current?.assets.uniforms.set("u_grid", {
       type: "float",
       value: grid,
     });
-    glRef.current?.setUniform("u_spread", {
+    glRef.current?.assets.uniforms.set("u_spread", {
       type: "float",
       value: spread,
     });
-    glRef.current?.setUniform("u_blur", {
+    glRef.current?.assets.uniforms.set("u_blur", {
       type: "float",
       value: blur,
     });
-    glRef.current?.setUniform("u_modulateSize", {
+    glRef.current?.assets.uniforms.set("u_modulateSize", {
       type: "bool",
       value: modulateSize,
     });
