@@ -6,7 +6,7 @@ class GlslAssetManager {
   readonly program: WebGLProgram;
   readonly uniforms: Map<string, WebGLUniformLocation | null> = new Map();
   readonly textures: Map<number, WebGLTexture> = new Map();
-  private videoEl: HTMLVideoElement | null = null;
+  private _videoEl: HTMLVideoElement | null = null;
 
   constructor(
     gl: WebGLRenderingContext,
@@ -116,12 +116,14 @@ class GlslAssetManager {
     this.textures.set(textureUnit, texture);
 
     const video = document.createElement("video");
-    this.videoEl = video;
+    this._videoEl = video;
     video.autoplay = true;
     video.muted = true;
 
-    video.addEventListener("loadeddata", (e) => {
+    video.addEventListener("loadedmetadata", async () => {
+      if (!this.videoEl) return;
       video.play();
+      await tick(200);
 
       try {
         const texture = this.textures.get(textureUnit);
@@ -133,8 +135,8 @@ class GlslAssetManager {
           this.gl.uniform2f(sizeLocation, 640, 480);
           this.gl.activeTexture(this.gl.TEXTURE0 + textureUnit);
           this.gl.bindTexture(this.gl.TEXTURE_2D, texture);
-          setTextureParams(this.gl, video);
-          updateTexture(this.gl, video);
+          setTextureParams(this.gl, this.videoEl);
+          updateTexture(this.gl, this.videoEl);
         }
       } catch (error) {
         console.error(`Error loading texture ${name}:`, error);
@@ -143,6 +145,8 @@ class GlslAssetManager {
 
     video.srcObject = stream;
   }
+
+  public renderVideo() {}
 
   public setUniform(name: string, config: UniformValue) {
     const location = this.uniforms.get(name);
@@ -181,15 +185,25 @@ class GlslAssetManager {
     }
   }
 
+  get videoEl() {
+    return this._videoEl;
+  }
+
   public destroy() {
     this.textures.forEach((txtr) => this.gl.deleteTexture(txtr));
     this.textures.clear();
-    if (this.videoEl && this.videoEl.srcObject) {
-      const stream = this.videoEl.srcObject as MediaStream;
+    if (this._videoEl && this._videoEl.srcObject) {
+      const stream = this._videoEl.srcObject as MediaStream;
       stream.getTracks().forEach((track) => track.stop());
-      this.videoEl = null;
+      this._videoEl = null;
     }
   }
 }
 
 export default GlslAssetManager;
+
+function tick(timeout = 0) {
+  return new Promise((resolve) => {
+    setTimeout(() => resolve(null), timeout);
+  });
+}
