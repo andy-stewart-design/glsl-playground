@@ -6,6 +6,7 @@ export default class GlslRenderer extends GlslCanvas {
   private mousePosition = [0, 0];
   readonly assets: GlslAssetManager;
   private controller = new AbortController();
+  private rafId: number | null = null;
 
   constructor(
     container: HTMLElement,
@@ -17,7 +18,6 @@ export default class GlslRenderer extends GlslCanvas {
 
     this.handleResize();
     this.addEventListeners();
-    requestAnimationFrame((t) => this.render(t));
   }
 
   private render(time: number) {
@@ -63,6 +63,21 @@ export default class GlslRenderer extends GlslCanvas {
     );
 
     window.addEventListener("resize", () => this.handleResize(), { signal });
+  }
+
+  public play() {
+    this.rafId = requestAnimationFrame((t) => this.render(t));
+  }
+
+  public pause() {
+    if (typeof this.rafId === "number") {
+      cancelAnimationFrame(this.rafId);
+      this.rafId = null;
+    }
+  }
+
+  public async setupWebcam() {
+    await this.assets.setupWebcam();
   }
 
   public updateUniform(name: string, config: UniformValue) {

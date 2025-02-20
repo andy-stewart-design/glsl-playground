@@ -8,7 +8,7 @@ interface Props {
   uniforms?: UniformConfig;
 }
 
-function GlslCanvas({ frag, uniforms }: Props) {
+function GlslVideoCanvas({ frag, uniforms }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const glRef = useRef<GlslRenderer | null>(null);
 
@@ -16,15 +16,23 @@ function GlslCanvas({ frag, uniforms }: Props) {
     const container = containerRef.current;
     if (!container) return;
 
-    const gl = new GlslRenderer(container, frag, uniforms);
-    // gl.play();
-    gl.setupWebcam().then(() => gl.play());
-    glRef.current = gl;
+    let gl: GlslRenderer;
 
-    return () => gl.destroy();
+    const init = async () => {
+      const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+      gl = new GlslRenderer(container, frag, uniforms);
+      glRef.current = gl;
+    };
+
+    init();
+
+    return () => {
+      gl?.destroy();
+      container.innerHTML = "";
+    };
   }, [frag, uniforms]);
 
   return <section ref={containerRef} className={s.section} />;
 }
 
-export default GlslCanvas;
+export default GlslVideoCanvas;

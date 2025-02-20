@@ -7,6 +7,8 @@ uniform vec2 u_mouse;
 uniform float u_time;
 uniform sampler2D u_texture;
 uniform vec2 u_texture_size; // Added texture size uniform
+uniform sampler2D u_webcam;
+uniform vec2 u_webcam_size; // Added texture size uniform
 
 vec3 rgb2hsv(vec3 c) {
     vec4 K = vec4(0.0, -1.0 / 3.0, 2.0 / 3.0, -1.0);
@@ -41,11 +43,12 @@ vec4 posterize(in vec4 inputColor) {
 }
 
 void main() {
+
     // Get normalized coordinates
     vec2 uv = gl_FragCoord.xy / u_resolution.xy;
 
     // Calculate aspect ratios
-    float texAspect = u_texture_size.x / u_texture_size.y;
+    float texAspect = u_webcam_size.x / u_webcam_size.y;
     float canvasAspect = u_resolution.x / u_resolution.y;
 
     // Adjust UVs to maintain aspect ratio (cover)
@@ -70,7 +73,7 @@ void main() {
     // vec3 HSV = rgb2hsv(u_texture);
 
     // Sample texture with adjusted coordinates
-    vec4 texColor = texture2D(u_texture, adjustedUV);
+    vec4 texColor = texture2D(u_webcam, adjustedUV);
 
     float numColors = 5.;
     vec3 HSV = rgb2hsv(texColor.rgb);
