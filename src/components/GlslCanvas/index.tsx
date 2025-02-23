@@ -17,8 +17,7 @@ function GlslCanvas({ frag, uniforms }: Props) {
     if (!container) return;
 
     const gl = new GlslRenderer(container, frag, uniforms);
-    // gl.play();
-    gl.setupWebcam().then(() => gl.play());
+    gl.play();
     glRef.current = gl;
 
     return () => gl.destroy();

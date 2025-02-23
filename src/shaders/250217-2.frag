@@ -5,8 +5,6 @@ precision mediump float;
 uniform vec2 u_resolution;
 uniform vec2 u_mouse;
 uniform float u_time;
-uniform sampler2D u_texture;
-uniform vec2 u_texture_size; // Added texture size uniform
 uniform sampler2D u_webcam;
 uniform vec2 u_webcam_size; // Added texture size uniform
 

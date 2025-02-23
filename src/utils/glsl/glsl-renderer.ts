@@ -30,10 +30,8 @@ export default class GlslRenderer extends GlslCanvas {
     const uMouse = this.assets.uniforms.get("u_mouse") ?? null;
     this.gl.uniform2f(uMouse, this.mousePosition[0], this.mousePosition[1]);
 
-    this.assets.textures.forEach((texture, unit) => {
-      this.gl.activeTexture(this.gl.TEXTURE0 + unit);
-      this.gl.bindTexture(this.gl.TEXTURE_2D, texture);
-    });
+    // render dynamic textures
+    this.assets.renderDynamicTextures();
 
     // Draw
     this.gl.drawArrays(this.gl.TRIANGLES, 0, DEFAULT_VERTICES.length / 2);
@@ -74,10 +72,6 @@ export default class GlslRenderer extends GlslCanvas {
       cancelAnimationFrame(this.rafId);
       this.rafId = null;
     }
-  }
-
-  public async setupWebcam() {
-    await this.assets.setupWebcam();
   }
 
   public updateUniform(name: string, config: UniformValue) {

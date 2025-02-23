@@ -17,7 +17,7 @@ interface UniformBoolean {
 }
 
 interface UniformTexture {
-  type: "sampler2D";
+  type: "image";
   value: string; // URL of the texture
 }
 
@@ -180,7 +180,7 @@ class GlslAssetManager {
       case "bool":
         this.gl.uniform1i(location, value ? 1 : 0);
         break;
-      case "sampler2D":
+      case "image":
         this.loadTexture(name, value, this.textures.size);
         break;
       default:

@@ -1,12 +1,21 @@
 import { setTextureParams, updateTexture } from "./glsl-utils";
 import type { UniformConfig, UniformValue } from "./types";
 
+interface StaticTexture {
+  asset: WebGLTexture;
+  unit: number;
+}
+
+interface DynamicTexture extends StaticTexture {
+  video: HTMLVideoElement;
+}
+
 class GlslAssetManager {
   readonly gl: WebGLRenderingContext;
   readonly program: WebGLProgram;
   readonly uniforms: Map<string, WebGLUniformLocation | null> = new Map();
-  readonly textures: Map<number, WebGLTexture> = new Map();
-  private _videoEl: HTMLVideoElement | null = null;
+  readonly staticTextures: Map<string, StaticTexture> = new Map();
+  readonly dynamicTextures: Map<string, DynamicTexture> = new Map();
 
   constructor(
     gl: WebGLRenderingContext,
@@ -16,19 +25,20 @@ class GlslAssetManager {
     this.gl = gl;
     this.program = program;
 
-    // Built-in uniform locations
+    this.initializeDefaultUniforms();
+    this.initializeCustomUniforms(initialUniforms);
+  }
+
+  private initializeDefaultUniforms() {
     const uTime = this.gl.getUniformLocation(this.program, "u_time");
     this.uniforms.set("u_time", uTime);
     const uRes = this.gl.getUniformLocation(this.program, "u_resolution");
     this.uniforms.set("u_resolution", uRes);
     const uMouse = this.gl.getUniformLocation(this.program, "u_mouse");
     this.uniforms.set("u_mouse", uMouse);
-
-    // Initialize custom uniforms
-    this.initializeUniforms(initialUniforms);
   }
 
-  private initializeUniforms(uniforms: UniformConfig) {
+  private initializeCustomUniforms(uniforms: UniformConfig) {
     for (const [name, config] of Object.entries(uniforms)) {
       const location = this.gl.getUniformLocation(this.program, name);
       if (!location) continue;
@@ -38,28 +48,40 @@ class GlslAssetManager {
     }
   }
 
-  private loadTexture(name: string, url: string) {
-    // Create a new texture
-    const texture = this.gl.createTexture();
-    const textureUnit = this.textures.size;
-    if (!texture) {
-      console.error(`Error loading texture ${name}`);
-      return;
+  private getTextureUnit() {
+    return this.staticTextures.size + this.dynamicTextures.size;
+  }
+
+  private getUniformLocation(name: string) {
+    const location = this.gl.getUniformLocation(this.program, name);
+    if (!location) {
+      throw new Error(`Failed to retrieve unform loaction for ${name}`);
     }
+    return location;
+  }
+
+  private initializeTexture(name: string) {
+    // Create a new texture
+    const location = this.getUniformLocation(name);
+    const texture = this.gl.createTexture();
+    const textureUnit = this.getTextureUnit();
+
+    // Set the sampler uniform to use the correct texture unit
+    this.gl.uniform1i(location, textureUnit);
 
     // Use a placeholder pixel while the image loads
     this.gl.activeTexture(this.gl.TEXTURE0 + textureUnit);
     this.gl.bindTexture(this.gl.TEXTURE_2D, texture);
     updateTexture(this.gl);
 
-    // Track the texture
-    this.textures.set(textureUnit, texture);
+    return [texture, textureUnit] as const;
+  }
 
-    // Set the sampler uniform to use the correct texture unit
-    const location = this.uniforms.get(name);
-    if (location) {
-      this.gl.uniform1i(location, textureUnit);
-    }
+  private loadStaticTexture(name: string, url: string) {
+    const [texture, textureUnit] = this.initializeTexture(name);
+
+    // Track the texture
+    this.staticTextures.set(name, { asset: texture, unit: textureUnit });
 
     // Load the image
     const image = new Image();
@@ -67,7 +89,7 @@ class GlslAssetManager {
 
     image.onload = () => {
       try {
-        const texture = this.textures.get(textureUnit);
+        const texture = this.staticTextures.get(name);
         const sizeName = `${name}_size`;
         const sizeLocation = this.gl.getUniformLocation(this.program, sizeName);
 
@@ -75,7 +97,7 @@ class GlslAssetManager {
           this.uniforms.set(sizeName, sizeLocation);
           this.gl.uniform2f(sizeLocation, image.width, image.height);
           this.gl.activeTexture(this.gl.TEXTURE0 + textureUnit);
-          this.gl.bindTexture(this.gl.TEXTURE_2D, texture);
+          this.gl.bindTexture(this.gl.TEXTURE_2D, texture.asset);
           setTextureParams(this.gl, image);
           updateTexture(this.gl, image);
         }
@@ -91,42 +113,24 @@ class GlslAssetManager {
     image.src = url;
   }
 
-  public async setupWebcam(name = "u_webcam") {
-    const stream = await navigator.mediaDevices.getUserMedia({ video: true });
-
-    // Create a new texture
-    const location = this.gl.getUniformLocation(this.program, name);
-    const texture = this.gl.createTexture();
-    const textureUnit = this.textures.size;
-    if (!texture || !location) {
-      console.error("Failed to create texture");
-      console.error({ texture, location, textureUnit });
-      return;
-    }
-
-    // Set the sampler uniform to use the correct texture unit
-    this.gl.uniform1i(location, textureUnit);
-
-    // Use a placeholder pixel while the image loads
-    this.gl.activeTexture(this.gl.TEXTURE0 + textureUnit);
-    this.gl.bindTexture(this.gl.TEXTURE_2D, texture);
-    updateTexture(this.gl);
-
-    // Track the texture
-    this.textures.set(textureUnit, texture);
-
+  public async loadDynamicTexture(name: string, url?: string) {
     const video = document.createElement("video");
-    this._videoEl = video;
-    video.autoplay = true;
     video.muted = true;
 
-    video.addEventListener("loadedmetadata", async () => {
-      if (!this.videoEl) return;
+    video.addEventListener("loadeddata", () => {
+      const [texture, textureUnit] = this.initializeTexture(name);
+
+      // Track the texture
+      this.dynamicTextures.set(name, {
+        video,
+        asset: texture,
+        unit: textureUnit,
+      });
+
       video.play();
-      await tick(200);
 
       try {
-        const texture = this.textures.get(textureUnit);
+        const texture = this.dynamicTextures.get(name);
         const sizeName = `${name}_size`;
         const sizeLocation = this.gl.getUniformLocation(this.program, sizeName);
 
@@ -134,19 +138,40 @@ class GlslAssetManager {
           this.uniforms.set(sizeName, sizeLocation);
           this.gl.uniform2f(sizeLocation, 640, 480);
           this.gl.activeTexture(this.gl.TEXTURE0 + textureUnit);
-          this.gl.bindTexture(this.gl.TEXTURE_2D, texture);
-          setTextureParams(this.gl, this.videoEl);
-          updateTexture(this.gl, this.videoEl);
+          this.gl.bindTexture(this.gl.TEXTURE_2D, texture.asset);
+          setTextureParams(this.gl, video);
+          updateTexture(this.gl, video);
         }
       } catch (error) {
         console.error(`Error loading texture ${name}:`, error);
       }
     });
 
-    video.srcObject = stream;
+    if (!url) {
+      const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+      video.autoplay = true;
+      video.srcObject = stream;
+    } else {
+      video.loop = true;
+      video.crossOrigin = "anonymous";
+      video.src = url;
+    }
   }
 
-  public renderVideo() {}
+  public renderDynamicTextures() {
+    for (const texture of Array.from(this.dynamicTextures.values())) {
+      this.gl.activeTexture(this.gl.TEXTURE0 + texture.unit);
+      this.gl.bindTexture(this.gl.TEXTURE_2D, texture.asset);
+      this.gl.texImage2D(
+        this.gl.TEXTURE_2D,
+        0,
+        this.gl.RGBA,
+        this.gl.RGBA,
+        this.gl.UNSIGNED_BYTE,
+        texture.video
+      );
+    }
+  }
 
   public setUniform(name: string, config: UniformValue) {
     const location = this.uniforms.get(name);
@@ -156,54 +181,52 @@ class GlslAssetManager {
       return;
     }
 
-    const { type, value } = config;
-
-    switch (type) {
+    switch (config.type) {
       case "float":
-        this.gl.uniform1f(location, value);
+        this.gl.uniform1f(location, config.value);
         break;
       case "vec2":
-        this.gl.uniform2fv(location, value);
+        this.gl.uniform2fv(location, config.value);
         break;
       case "vec3":
-        this.gl.uniform3fv(location, value);
+        this.gl.uniform3fv(location, config.value);
         break;
       case "vec4":
-        this.gl.uniform4fv(location, value);
+        this.gl.uniform4fv(location, config.value);
         break;
       case "int":
-        this.gl.uniform1i(location, value);
+        this.gl.uniform1i(location, config.value);
         break;
       case "bool":
-        this.gl.uniform1i(location, value ? 1 : 0);
+        this.gl.uniform1i(location, config.value ? 1 : 0);
         break;
-      case "sampler2D":
-        this.loadTexture(name, value);
+      case "image":
+        this.loadStaticTexture(name, config.value);
+        break;
+      case "video":
+        this.loadDynamicTexture(name, config.value);
+        break;
+      case "webcam":
+        this.loadDynamicTexture(name);
         break;
       default:
-        console.warn(`Unsupported uniform type: ${type}`);
+        console.warn(`Unsupported uniform type for ${name}`);
     }
-  }
-
-  get videoEl() {
-    return this._videoEl;
   }
 
   public destroy() {
-    this.textures.forEach((txtr) => this.gl.deleteTexture(txtr));
-    this.textures.clear();
-    if (this._videoEl && this._videoEl.srcObject) {
-      const stream = this._videoEl.srcObject as MediaStream;
-      stream.getTracks().forEach((track) => track.stop());
-      this._videoEl = null;
+    this.staticTextures.forEach((txtr) => this.gl.deleteTexture(txtr.asset));
+    this.staticTextures.clear();
+    for (const texture of Array.from(this.dynamicTextures.values())) {
+      const src = texture.video.srcObject;
+      if (src instanceof MediaStream) {
+        src.getTracks().forEach((track) => track.stop());
+      } else {
+        texture.video.srcObject = null;
+      }
     }
+    this.dynamicTextures.clear();
   }
 }
 
 export default GlslAssetManager;
-
-function tick(timeout = 0) {
-  return new Promise((resolve) => {
-    setTimeout(() => resolve(null), timeout);
-  });
-}

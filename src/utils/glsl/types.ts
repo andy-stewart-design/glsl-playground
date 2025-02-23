@@ -13,16 +13,27 @@ interface UniformBoolean {
   value: boolean;
 }
 
-interface UniformTexture {
-  type: "sampler2D";
+interface UniformStaticTexture {
+  type: "image";
   value: string; // URL of the texture
+}
+
+interface UniformDynamicTexture {
+  type: "video";
+  value: string; // URL of the texture
+}
+
+interface UniformWebcamTexture {
+  type: "webcam";
 }
 
 type UniformValue =
   | UniformNumber
   | UniformVector
   | UniformBoolean
-  | UniformTexture;
+  | UniformStaticTexture
+  | UniformDynamicTexture
+  | UniformWebcamTexture;
 
 interface UniformConfig {
   [key: string]: UniformValue;
@@ -32,7 +43,7 @@ export type {
   UniformNumber,
   UniformVector,
   UniformBoolean,
-  UniformTexture,
+  UniformStaticTexture as UniformTexture,
   UniformValue,
   UniformConfig,
 };
